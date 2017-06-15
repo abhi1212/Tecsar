@@ -29,6 +29,18 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
 void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage,
 const float* const h_filter, const size_t filterWidth);
 
+void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA,
+                      const size_t numRows, const size_t numCols,
+                      const int oRow,const int oCol);
+
+
+void recombine_channels(uchar4* const d_outputImageRGBA,
+			unsigned char *d_redBlurred,
+                        unsigned char *d_greenBlurred,
+                        unsigned char *d_blueBlurred,
+			const size_t numRows, const size_t numCols,
+			const int oRow,const int oCol);
+
 /********************************************************Main Function********************************************************************************************/
 
 int main(int argc, char **argv)
@@ -143,20 +155,33 @@ int main(int argc, char **argv)
 
 	allocateMemoryAndCopyToGPU(numRows(), numCols(), h_filter, filterWidth);	//Mallocing output of 3 channels and also filters.
 
-	printf("Size of uchar4 is %d\n",sizeof(uchar4));
+	printf("Size of uchar4 is %d\n",sizeof(uchar4)); // Its 4 byte Long
  
- 
-	/*Memory Allocation Done try to launch some Kernels*/
-  
 	GpuTimer timer;		//Start the Timer
-	timer.Start();
+	timer.Start(); 
 
 
+	/**********************************First Layer Alex Net**********************************************************************/
+  
+	seperate_channel(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(),oRow,oCol);    // Call Seperate channel
+	
 	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA, d_outputImageRGBA, numRows(), numCols(),
-				d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth,tilesize,s,oRow,oCol);
+				d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth,tilesize,s,oRow,oCol);     // Convolution First Layer 96 kernels of size 11*11*3
+
+	recombine_channels(d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred, numRows(), numCols(),oRow,oCol);
+
+
+	//pool_firstlayer();      Pooling Layer (size 3*3) (stride 2*2)
+
+	//relu();
+	
+
+	/******************************************************************************************************************************/
+
 
 	timer.Stop();
-	cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+	cudaDeviceSynchronize();
+	checkCudaErrors(cudaGetLastError());
 
 	int err = printf("Your code ran in: %f msecs.\n", timer.Elapsed());
 
