@@ -46,7 +46,7 @@ void recombine_channels(uchar4* const d_outputImageRGBA,
 int main(int argc, char **argv)
 {
 	uchar4  *d_inputImageRGBA,*h_inputImageRGBA;
-	uchar4 *h_outputImageRGBA, *d_outputImageRGBA;     //uchar4 is a structure with 4 fields	
+	uchar4 *h_outputImageRGBA, *d_outputImageRGBA,*h_outputImageRGBA1;     //uchar4 is a structure with 4 fields	
 	unsigned char *d_redBlurred, *d_greenBlurred, *d_blueBlurred;
 	float *d_filter,*h_filter ;
  
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 
 	cv::cvtColor(image, imageInputRGBA, CV_BGR2RGBA);         //Converts an image from one color space to another. http://docs.opencv.org/2.4/modules/imgproc/doc/miscellaneous_transformations.html , Image is the source,  
 
-	imageOutputRGBA.create(image.rows, image.cols, CV_8UC4); //allocate memory for the output
+	imageOutputRGBA.create(image.rows, image.cols, CV_8UC4); //allocate memory for the output //Here we are allocating the mempry equal to input image size.
 
 
 
@@ -101,8 +101,29 @@ int main(int argc, char **argv)
 
 /*********************************************************Setting the Kernel Weights**********************************************************/
 
+
 	h_inputImageRGBA  = (uchar4 *)imageInputRGBA.ptr<unsigned char>(0);    //Creating an Array for Input Image
+	
+	//I want 96 such Output Arrays
+
 	h_outputImageRGBA = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
+	h_outputImageRGBA1 = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
+
+
+
+
+
+
+
+
+	/*struct outputImage {
+	
+	 (uchar4 *) imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
+	
+	} output[96];*/
+
+
+
 	h_filter = new float[filterWidth * filterWidth];                       //Creating an Array for Filter
 	const size_t numPixels = numRows() * numCols();
 
