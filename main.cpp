@@ -131,8 +131,6 @@ int main(int argc, char **argv)
 
 
 
-
-
 	const int oCol=(numCols()-filterWidth)/s+1;	//Number of Output Columns after stride and filter
 	const int oRow=(numRows()-filterWidth)/s+1;
 	const int oNumPixels=oCol*oRow;			//Total Number of Pixels
@@ -160,6 +158,7 @@ int main(int argc, char **argv)
 	GpuTimer timer;		//Start the Timer
 	timer.Start(); 
 
+	
 
 	/**********************************First Layer Alex Net**********************************************************************/
   

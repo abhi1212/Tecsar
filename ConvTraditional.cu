@@ -138,6 +138,7 @@ void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsI
                                 const float* const h_filter, const size_t filterWidth)
 {
 
+  int i;
   //allocate memory for the three different channels
   //original
   checkCudaErrors(cudaMalloc(&d_red,   sizeof(unsigned char) * numRowsImage * numColsImage));
@@ -223,12 +224,14 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          filterWidth,s,oRow,oCol);
 
   
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize();
+  checkCudaErrors(cudaGetLastError());
 
 
 }
 
 
+//	I need to copy the output to an auxillary array
 /*******************************************************Recombine Channels*********************************************************************************/
 
 
@@ -251,7 +254,11 @@ void recombine_channels(uchar4* const d_outputImageRGBA,
                                              d_outputImageRGBA,
                                              numRows,
                                              numCols);
-  	cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  	cudaDeviceSynchronize();
+        checkCudaErrors(cudaGetLastError());
+
+	
+
 }
 
 
