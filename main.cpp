@@ -54,8 +54,13 @@ int main(int argc, char **argv)
 	/* Defined a structure with 96 output arrays for first layer*/
 	
 	struct outer{
-	uchar4 *h_outputImageRGBA2;
+	uchar4 *h_outputImageRGBA;
 	} out[96];
+
+	struct d_outer{
+	uchar4 *d_outputImageRGBA;
+	} d_out[96];
+
 	
 	/*************************************************************/ 
 
@@ -117,13 +122,13 @@ int main(int argc, char **argv)
 
 	for(i=0;i<96;i++)
 	{
-		out[i].h_outputImageRGBA2= (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);
+		out[i].h_outputImageRGBA= (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);
 	}
 
 
-	h_outputImageRGBA = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
+	/*h_outputImageRGBA = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
 	h_outputImageRGBA1 = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image*/
-
+	
 
 
 	h_filter = new float[filterWidth * filterWidth];                       //Creating an Array for Filter
@@ -163,8 +168,18 @@ int main(int argc, char **argv)
   
 
 	checkCudaErrors(cudaMalloc((void**)&d_inputImageRGBA, sizeof(uchar4) * numPixels)); 	//Numpixels size of original image.
-	checkCudaErrors(cudaMalloc((void**)&d_outputImageRGBA, sizeof(uchar4) * oNumPixels));	//ONumpixels size after stride
-	checkCudaErrors(cudaMemset(d_outputImageRGBA, 0, sizeof(uchar4) * oNumPixels)); //make sure no memory is left laying around
+	
+	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMalloc((void**)&d_out[i].d_outputImageRGBA,(sizeof(uchar4) * oNumPixels)));	//ONumpixels size after stride
+	}
+	//checkCudaErrors(cudaMalloc((void**)&d_outputImageRGBA, sizeof(uchar4) * oNumPixels));	//ONumpixels size after stride
+
+	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMemset(d_out[i].d_outputImageRGBA, 0, sizeof(uchar4) * oNumPixels)); //make sure no memory is left laying around
+	}
+
 	checkCudaErrors(cudaMemcpy(d_inputImageRGBA, h_inputImageRGBA, sizeof(int) * numPixels, cudaMemcpyHostToDevice)); //Input Memcpy
 	checkCudaErrors(cudaMalloc((void**)&d_redBlurred,    sizeof(unsigned char) * oNumPixels));			  //Malloc 3 channels
 	checkCudaErrors(cudaMalloc((void**)&d_greenBlurred,  sizeof(unsigned char) * oNumPixels));
@@ -190,6 +205,8 @@ int main(int argc, char **argv)
 	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA, d_outputImageRGBA, numRows(), numCols(),
 				d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth,tilesize,s,oRow,oCol);     // Convolution First Layer 96 kernels of size 11*11*3
 
+
+
 	recombine_channels(d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred, numRows(), numCols(),oRow,oCol);
 
 
@@ -206,6 +223,7 @@ int main(int argc, char **argv)
 	checkCudaErrors(cudaGetLastError());
 
 	int err = printf("Your code ran in: %f msecs.\n", timer.Elapsed());
+
 
 	if (err < 0) {
 	//Couldn't print! Probably the student closed stdout - bad news

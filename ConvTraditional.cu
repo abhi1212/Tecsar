@@ -207,7 +207,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          numRows,
                                          numCols,
                                          d_filter,
-                                         filterWidth,s,oRow,oCol);
+                                         filterWidth,s,oRow,oCol);qqssqss
   cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
   gaussian_blur<<<gridSize, blockSize>>>(d_green,
                                          d_greenBlurred,
