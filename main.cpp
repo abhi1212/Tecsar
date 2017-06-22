@@ -16,6 +16,7 @@ Mat imageOutputRGBA;
 size_t numRows() { return imageInputRGBA.rows; }
 size_t numCols() { return imageInputRGBA.cols; }
 
+
 /********************************************************Function Definitions********************************************************************************************/
 
 void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA,
@@ -48,8 +49,16 @@ int main(int argc, char **argv)
 	uchar4  *d_inputImageRGBA,*h_inputImageRGBA;
 	uchar4 *h_outputImageRGBA, *d_outputImageRGBA,*h_outputImageRGBA1;     //uchar4 is a structure with 4 fields	
 	unsigned char *d_redBlurred, *d_greenBlurred, *d_blueBlurred;
-	float *d_filter,*h_filter ;
- 
+	float *d_filter,*h_filter;
+	int i;
+	/* Defined a structure with 96 output arrays for first layer*/
+	
+	struct outer{
+	uchar4 *h_outputImageRGBA2;
+	} out[96];
+	
+	/*************************************************************/ 
+
 	int filterWidth;
 	int s;
 	int tilesize;
@@ -106,21 +115,14 @@ int main(int argc, char **argv)
 	
 	//I want 96 such Output Arrays
 
+	for(i=0;i<96;i++)
+	{
+		out[i].h_outputImageRGBA2= (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);
+	}
+
+
 	h_outputImageRGBA = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
-	h_outputImageRGBA1 = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
-
-
-
-
-
-
-
-
-	/*struct outputImage {
-	
-	 (uchar4 *) imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
-	
-	} output[96];*/
+	h_outputImageRGBA1 = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image*/
 
 
 
