@@ -13,19 +13,17 @@ using namespace std;
 using namespace cv;
 Mat imageInputRGBA;
 Mat imageOutputRGBA;
-size_t numRows() { return imageInputRGBA.rows; }
-size_t numCols() { return imageInputRGBA.cols; }
+size_t numRows() { return (size_t) imageInputRGBA.rows; }
+size_t numCols() { return (size_t) imageInputRGBA.cols; }
 
 
 /********************************************************Function Definitions********************************************************************************************/
 
-void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA,
-                        uchar4* const d_outputImageRGBA,
-                        const size_t numRows, const size_t numCols,
-                        unsigned char *d_redBlurred,
-                        unsigned char *d_greenBlurred,
-                        unsigned char *d_blueBlurred,
-                        const int filterWidth,const int tilesize,const int s,const int oRow,const int oCol);
+void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA, const size_t numRows, const size_t numCols,
+                        unsigned char * d_redBlurred,
+                        unsigned char * d_greenBlurred,
+                        unsigned char * d_blueBlurred,
+                        const int filterWidth, const int tilesize, const int s, const int oRow, const int oCol);
 
 void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage,
 const float* const h_filter, const size_t filterWidth);
@@ -157,6 +155,8 @@ int main(int argc, char **argv)
 
 /*************************************************************************************************************************************************/
 
+	//Let the output image also be unsigned char..........
+
 
 
 	const int oCol=(numCols()-filterWidth)/s+1;	//Number of Output Columns after stride and filter
@@ -168,11 +168,13 @@ int main(int argc, char **argv)
   
 
 	checkCudaErrors(cudaMalloc((void**)&d_inputImageRGBA, sizeof(uchar4) * numPixels)); 	//Numpixels size of original image.
+
 	
 	for(i=0;i<96;i++)
 	{
 		checkCudaErrors(cudaMalloc((void**)&d_out[i].d_outputImageRGBA,(sizeof(uchar4) * oNumPixels)));	//ONumpixels size after stride
 	}
+
 	//checkCudaErrors(cudaMalloc((void**)&d_outputImageRGBA, sizeof(uchar4) * oNumPixels));	//ONumpixels size after stride
 
 	for(i=0;i<96;i++)
@@ -193,6 +195,8 @@ int main(int argc, char **argv)
 
 	printf("Size of uchar4 is %d\n",sizeof(uchar4)); // Its 4 byte Long
  
+	printf("Size of size_t is %d\n",sizeof(uchar4)); // Its 4 byte Long
+
 	GpuTimer timer;		//Start the Timer
 	timer.Start(); 
 
@@ -200,15 +204,22 @@ int main(int argc, char **argv)
 
 	/**********************************First Layer Alex Net**********************************************************************/
   
-	seperate_channel(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(),oRow,oCol);    // Call Seperate channel
+	seperate_channel(h_inputImageRGBA, d_inputImageRGBA, numRows(), numCols(),oRow,oCol);    // Call Seperate channel
+
+	for(i=0;i<96;i++)
+	{
+
+	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(), d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth, tilesize, s, oRow, oCol);     // 																Convolution First Layer 96 kernels of size 11*11*3
 	
-	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA, d_outputImageRGBA, numRows(), numCols(),
-				d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth,tilesize,s,oRow,oCol);     // Convolution First Layer 96 kernels of size 11*11*3
+	recombine_channels(d_out[i].d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred,numRows(), numCols(),oRow,oCol);
 
+	//cudaDeviceSynchronize();	
 
+	//checkCudaErrors(cudaMemcpy(h_outputImageRGBA, d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
 
-	recombine_channels(d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred, numRows(), numCols(),oRow,oCol);
+	//Put a barrier
 
+	}
 
 	//pool_firstlayer();      Pooling Layer (size 3*3) (stride 2*2)
 
@@ -231,8 +242,11 @@ int main(int argc, char **argv)
 	exit(1);
 	}
 
-	checkCudaErrors(cudaMemcpy(h_outputImageRGBA, d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
-	cv::Mat output(oRow, oCol, CV_8UC4, h_outputImageRGBA);
+
+	checkCudaErrors(cudaMemcpy(h_outputImageRGBA, d_outputImageRGBA, sizeof(uchar4) *oNumPixels, cudaMemcpyDeviceToHost));
+
+
+	/*cv::Mat output(oRow, oCol, CV_8UC4, h_outputImageRGBA);
 
 	cv::Mat imageOutputBGR;
 	cv::cvtColor(output, imageOutputBGR, CV_RGBA2BGR);
@@ -243,8 +257,8 @@ int main(int argc, char **argv)
 
 	checkCudaErrors(cudaFree(d_inputImageRGBA));
 	checkCudaErrors(cudaFree(d_outputImageRGBA));
-	checkCudaErrors(cudaFree(d_filter));
-
+	checkCudaErrors(cudaFree(d_filter));*/
+	
 
   return 0;
 }

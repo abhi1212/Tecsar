@@ -75,7 +75,7 @@ int kidx=0;
         float filter_value=filter[kidx++];
         sum+=filter_value*static_cast<float>(inputChannel[idx]);
    
-        }
+        } 
     }
     outputChannel[thread_1D_pos]=sum;
 }
@@ -100,8 +100,10 @@ void recombineChannels(const unsigned char* const redChannel,
 
   //make sure we don't try and access memory outside the image
   //by having any threads mapped there return early
+
   if (thread_2D_pos.x >= numCols || thread_2D_pos.y >= numRows)
     return;
+
 
   unsigned char red   = redChannel[thread_1D_pos];
   unsigned char green = greenChannel[thread_1D_pos];
@@ -109,6 +111,7 @@ void recombineChannels(const unsigned char* const redChannel,
 
   //Alpha should be 255 for no transparency
   uchar4 outputPixel = make_uchar4(red, green, blue, 255);
+
 
   outputImageRGBA[thread_1D_pos] = outputPixel;
 }
@@ -176,6 +179,8 @@ void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_in
 
   //TODO: Launch a kernel for separating the RGBA image into different color channels
 	separateChannels<<<gridSize, blockSize>>>(d_inputImageRGBA,
+
+
                                               numRows,
                                               numCols,
                                               d_red,
@@ -191,12 +196,11 @@ void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_in
 
 /*******************************************************Convolution Kernel Call*********************************************************************************/
 
-void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA,
-                        uchar4* const d_outputImageRGBA, const size_t numRows, const size_t numCols,
-                        unsigned char *d_redBlurred,
-                        unsigned char *d_greenBlurred,
-                        unsigned char *d_blueBlurred,
-                        const int filterWidth,const int tilesize,const int s,const int oRow,const int oCol)
+void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA, const size_t numRows, const size_t numCols,
+                        unsigned char * d_redBlurred,
+                        unsigned char * d_greenBlurred,
+                        unsigned char * d_blueBlurred,
+                        const int filterWidth, const int tilesize, const int s, const int oRow, const int oCol)
 {
   
 	const dim3 blockSize(32,2);
@@ -207,7 +211,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          numRows,
                                          numCols,
                                          d_filter,
-                                         filterWidth,s,oRow,oCol);qqssqss
+                                         filterWidth,s,oRow,oCol);
   cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
   gaussian_blur<<<gridSize, blockSize>>>(d_green,
                                          d_greenBlurred,
@@ -230,10 +234,8 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
 
 }
 
-
 //	I need to copy the output to an auxillary array
 /*******************************************************Recombine Channels*********************************************************************************/
-
 
 void recombine_channels(uchar4* const d_outputImageRGBA,
 			unsigned char *d_redBlurred,
