@@ -1,4 +1,6 @@
 
+//   We can Use Th	rust library 
+
 /********************************************************Including Header Files********************************************************************************************/
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -33,30 +35,33 @@ void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_in
                       const int oRow,const int oCol);
 
 
-void recombine_channels(uchar4* const d_outputImageRGBA,
+void recombine_channels(unsigned char * const d_outputImageRGBA,
 			unsigned char *d_redBlurred,
                         unsigned char *d_greenBlurred,
                         unsigned char *d_blueBlurred,
 			const size_t numRows, const size_t numCols,
 			const int oRow,const int oCol);
 
+
 /********************************************************Main Function********************************************************************************************/
+	//Changed the type of All output images to unsigned char..  
+
+
 
 int main(int argc, char **argv)
 {
-	uchar4  *d_inputImageRGBA,*h_inputImageRGBA;
-	uchar4 *h_outputImageRGBA, *d_outputImageRGBA,*h_outputImageRGBA1;     //uchar4 is a structure with 4 fields	
-	unsigned char *d_redBlurred, *d_greenBlurred, *d_blueBlurred;
+	uchar4  *d_inputImageRGBA,*h_inputImageRGBA;	//uchar4 is a structure with 4 fields	      	
+	unsigned char *d_redBlurred, *d_greenBlurred, *d_blueBlurred,*d_outputImageRGBA,*h_outputImageRGBA;
 	float *d_filter,*h_filter;
 	int i;
 	/* Defined a structure with 96 output arrays for first layer*/
 	
 	struct outer{
-	uchar4 *h_outputImageRGBA;
+	unsigned char *h_outputImageRGBA;
 	} out[96];
 
 	struct d_outer{
-	uchar4 *d_outputImageRGBA;
+	unsigned char *d_outputImageRGBA;
 	} d_out[96];
 
 	
@@ -113,17 +118,9 @@ int main(int argc, char **argv)
 
 /*********************************************************Setting the Kernel Weights**********************************************************/
 
-
 	h_inputImageRGBA  = (uchar4 *)imageInputRGBA.ptr<unsigned char>(0);    //Creating an Array for Input Image
-	
-	//I want 96 such Output Arrays
 
-	for(i=0;i<96;i++)
-	{
-		out[i].h_outputImageRGBA= (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);
-	}
-
-
+		
 	/*h_outputImageRGBA = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image
 	h_outputImageRGBA1 = (uchar4 *)imageOutputRGBA.ptr<unsigned char>(0);   //Creating an Array for Output Image*/
 	
@@ -165,22 +162,33 @@ int main(int argc, char **argv)
 
 
 	/*Malloced Input Image and Output Image, Memset done and also Memcpy*/
-  
 
+
+	for(i=0;i<96;i++)
+	{
+		out[i].h_outputImageRGBA=(unsigned char *)malloc(sizeof(unsigned char) *oNumPixels);	
+		memset(out[i].h_outputImageRGBA,0,sizeof(unsigned char) *oNumPixels);
+		
+	}
+
+  
 	checkCudaErrors(cudaMalloc((void**)&d_inputImageRGBA, sizeof(uchar4) * numPixels)); 	//Numpixels size of original image.
 
 	
 	for(i=0;i<96;i++)
 	{
-		checkCudaErrors(cudaMalloc((void**)&d_out[i].d_outputImageRGBA,(sizeof(uchar4) * oNumPixels)));	//ONumpixels size after stride
+		checkCudaErrors(cudaMalloc((void**)&d_out[i].d_outputImageRGBA,(sizeof(unsigned char) * oNumPixels)));	//ONumpixels size after stride
 	}
 
 	//checkCudaErrors(cudaMalloc((void**)&d_outputImageRGBA, sizeof(uchar4) * oNumPixels));	//ONumpixels size after stride
 
+
 	for(i=0;i<96;i++)
 	{
-		checkCudaErrors(cudaMemset(d_out[i].d_outputImageRGBA, 0, sizeof(uchar4) * oNumPixels)); //make sure no memory is left laying around
+		checkCudaErrors(cudaMemset(d_out[i].d_outputImageRGBA, 0, sizeof(unsigned char) * oNumPixels)); //make sure no memory is left laying around
 	}
+
+
 
 	checkCudaErrors(cudaMemcpy(d_inputImageRGBA, h_inputImageRGBA, sizeof(int) * numPixels, cudaMemcpyHostToDevice)); //Input Memcpy
 	checkCudaErrors(cudaMalloc((void**)&d_redBlurred,    sizeof(unsigned char) * oNumPixels));			  //Malloc 3 channels
@@ -215,9 +223,7 @@ int main(int argc, char **argv)
 
 	//cudaDeviceSynchronize();	
 
-	//checkCudaErrors(cudaMemcpy(h_outputImageRGBA, d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
-
-	//Put a barrier
+	checkCudaErrors(cudaMemcpy(&(out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
 
 	}
 
@@ -243,8 +249,8 @@ int main(int argc, char **argv)
 	}
 
 
-	checkCudaErrors(cudaMemcpy(h_outputImageRGBA, d_outputImageRGBA, sizeof(uchar4) *oNumPixels, cudaMemcpyDeviceToHost));
-
+	checkCudaErrors(cudaMemcpy(out[90].h_outputImageRGBA, d_out[90].d_outputImageRGBA, sizeof(unsigned char) *oNumPixels, cudaMemcpyDeviceToHost));
+	//checkCudaErrors(cudaMemcpy(out[90].h_outputImageRGBA, d_outputImageRGBA, sizeof(unsigned char) *oNumPixels, cudaMemcpyDeviceToHost));
 
 	/*cv::Mat output(oRow, oCol, CV_8UC4, h_outputImageRGBA);
 

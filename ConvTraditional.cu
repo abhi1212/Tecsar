@@ -89,7 +89,7 @@ __global__
 void recombineChannels(const unsigned char* const redChannel,
                        const unsigned char* const greenChannel,
                        const unsigned char* const blueChannel,
-                       uchar4* const outputImageRGBA,
+                       unsigned char* outputImageRGBA,
                        int numRows,
                        int numCols)
 {
@@ -110,10 +110,10 @@ void recombineChannels(const unsigned char* const redChannel,
   unsigned char blue  = blueChannel[thread_1D_pos];
 
   //Alpha should be 255 for no transparency
-  uchar4 outputPixel = make_uchar4(red, green, blue, 255);
+  //uchar4 outputPixel = make_uchar4(red, green, blue, 255);
 
+  outputImageRGBA[thread_1D_pos] = red+green+blue;
 
-  outputImageRGBA[thread_1D_pos] = outputPixel;
 }
 
 
@@ -133,6 +133,8 @@ void conv_firstlayer()- Calls Convolution Kernel.
 
 /***********************************************Allocate Memory*********************************************************************************************/
 
+	//According to me Onumpixels should be allocated.
+
 
 unsigned char *d_red, *d_green, *d_blue;
 float         *d_filter;
@@ -142,11 +144,13 @@ void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsI
 {
 
   int i;
+
   //allocate memory for the three different channels
   //original
   checkCudaErrors(cudaMalloc(&d_red,   sizeof(unsigned char) * numRowsImage * numColsImage));
   checkCudaErrors(cudaMalloc(&d_green, sizeof(unsigned char) * numRowsImage * numColsImage));
   checkCudaErrors(cudaMalloc(&d_blue,  sizeof(unsigned char) * numRowsImage * numColsImage));
+
 
   //TODO:
   //Allocate memory for the filter on the GPU
@@ -164,6 +168,8 @@ void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsI
   checkCudaErrors(cudaMemcpy(d_filter, h_filter, sizeof(float) * filterWidth * filterWidth, cudaMemcpyHostToDevice));
 
 }
+
+
 
 /********************************************************Seperate Channels**********************************************************************************/
 
@@ -237,7 +243,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
 //	I need to copy the output to an auxillary array
 /*******************************************************Recombine Channels*********************************************************************************/
 
-void recombine_channels(uchar4* const d_outputImageRGBA,
+void recombine_channels(unsigned char *d_outputImageRGBA,
 			unsigned char *d_redBlurred,
                         unsigned char *d_greenBlurred,
                         unsigned char *d_blueBlurred,
@@ -257,7 +263,7 @@ void recombine_channels(uchar4* const d_outputImageRGBA,
                                              numRows,
                                              numCols);
   	cudaDeviceSynchronize();
-        checkCudaErrors(cudaGetLastError());
+        //checkCudaErrors(cudaGetLastError());
 
 	
 
@@ -267,22 +273,6 @@ void recombine_channels(uchar4* const d_outputImageRGBA,
 
 	
 /*************************************************************************************************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
