@@ -1,5 +1,5 @@
 
-//   We can Use Th	rust library 
+//   We can Use Thrust library 
 
 /********************************************************Including Header Files********************************************************************************************/
 #include <opencv2/opencv.hpp>
@@ -42,6 +42,8 @@ void recombine_channels(unsigned char * const d_outputImageRGBA,
 			const size_t numRows, const size_t numCols,
 			const int oRow,const int oCol);
 
+void pool(unsigned char *image, unsigned char *output, int oRow,int oCol,int fsize,int stride);
+
 
 /********************************************************Main Function********************************************************************************************/
 	//Changed the type of All output images to unsigned char..  
@@ -63,6 +65,10 @@ int main(int argc, char **argv)
 	struct d_outer{
 	unsigned char *d_outputImageRGBA;
 	} d_out[96];
+
+	struct d_pool{
+	unsigned char *d_poolImageRGBA;
+	} d_pool[96];
 
 	
 	/*************************************************************/ 
@@ -155,11 +161,20 @@ int main(int argc, char **argv)
 	//Let the output image also be unsigned char..........
 
 
+/**********************************************************First Layer Pooling Layer Variables*******************************************************************/
 
 	const int oCol=(numCols()-filterWidth)/s+1;	//Number of Output Columns after stride and filter
 	const int oRow=(numRows()-filterWidth)/s+1;
 	const int oNumPixels=oCol*oRow;			//Total Number of Pixels
 
+
+	int fsize=3;
+	int stride=3;
+
+	int output_rows=((oRow-fsize)/stride) +1;
+  	int output_columns=((oCol-fsize)/stride) +1;	
+	int pool_pixels= (output_rows*output_columns);
+	
 
 	/*Malloced Input Image and Output Image, Memset done and also Memcpy*/
 
@@ -169,6 +184,12 @@ int main(int argc, char **argv)
 		out[i].h_outputImageRGBA=(unsigned char *)malloc(sizeof(unsigned char) *oNumPixels);	
 		memset(out[i].h_outputImageRGBA,0,sizeof(unsigned char) *oNumPixels);
 		
+	}
+
+	for(i=0;i<96;i++)
+	{
+		d_pool[i].d_poolImageRGBA=(unsigned char *)malloc(sizeof(unsigned char) *pool_pixels);
+		memset(d_pool[i].d_poolImageRGBA,0,sizeof(unsigned char) *pool_pixels);	
 	}
 
   
@@ -217,15 +238,22 @@ int main(int argc, char **argv)
 	for(i=0;i<96;i++)
 	{
 
+
+	
 	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(), d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth, tilesize, s, oRow, oCol);     // 																Convolution First Layer 96 kernels of size 11*11*3
 	
 	recombine_channels(d_out[i].d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred,numRows(), numCols(),oRow,oCol);
 
+
 	//cudaDeviceSynchronize();	
 
-	checkCudaErrors(cudaMemcpy(&(out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
+	//checkCudaErrors(cudaMemcpy(&(out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
 
 	}
+
+	//pool(d_out[20].d_outputImageRGBA, d_pool[20].d_poolImageRGBA, oRow, oCol, fsize, stride);
+
+
 
 	//pool_firstlayer();      Pooling Layer (size 3*3) (stride 2*2)
 
@@ -237,7 +265,11 @@ int main(int argc, char **argv)
 
 	timer.Stop();
 	cudaDeviceSynchronize();
+
 	checkCudaErrors(cudaGetLastError());
+	
+	
+
 
 	int err = printf("Your code ran in: %f msecs.\n", timer.Elapsed());
 
@@ -268,3 +300,4 @@ int main(int argc, char **argv)
 
   return 0;
 }
+

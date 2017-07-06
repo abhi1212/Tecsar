@@ -89,7 +89,7 @@ __global__
 void recombineChannels(const unsigned char* const redChannel,
                        const unsigned char* const greenChannel,
                        const unsigned char* const blueChannel,
-                       unsigned char* outputImageRGBA,
+                       unsigned char * outputImageRGBA,
                        int numRows,
                        int numCols)
 {
@@ -116,6 +116,52 @@ void recombineChannels(const unsigned char* const redChannel,
 
 }
 
+
+
+
+/*******************************************************************Pooling Layer******************************************************************************/
+
+__global__ void pooling_layer(unsigned char* image,unsigned char* output_image ,int oRow,int oCol,int fsize,int stride)
+{
+	  
+	int output_rows=((oRow-fsize)/stride +1);
+	int output_columns=((oCol-fsize)/stride +1);
+	int i,j;
+	float sum=0;
+	float mask=0;
+	int column = threadIdx.x + blockIdx.x * blockDim.x;
+	int row = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if(row>=oRow || column>=oCol)
+		return;
+
+        int global_index=(row*output_columns)+column;
+
+	int row_input=(row*fsize);
+	int col_input=(column*fsize);
+
+	if(row_input>=oRow-1 || col_input>=oCol-1)
+		return;
+
+       	
+	for(i=0;i<fsize;i++)
+	{
+		for(j=0;j<fsize;j++)
+		{
+			sum= image[(row_input+i) *oCol + col_input+j];			
+			if(sum>mask)
+			{
+				mask=sum;
+			}
+		}
+	}
+
+
+	output_image[global_index]=mask;
+	printf("The global index is %d and values is %f\n", global_index,mask);
+
+}
+		
 
 
 /***********************************************************************************************************************************************************
@@ -211,21 +257,23 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
   
 	const dim3 blockSize(32,2);
 	const dim3 gridSize(oCol/blockSize.x+1,oRow/blockSize.y+1);
-
+ 
 	gaussian_blur<<<gridSize, blockSize>>>(d_red,
                                          d_redBlurred,
                                          numRows,
                                          numCols,
                                          d_filter,
                                          filterWidth,s,oRow,oCol);
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
+  checkCudaErrors(cudaGetLastError());
   gaussian_blur<<<gridSize, blockSize>>>(d_green,
                                          d_greenBlurred,
                                          numRows,
                                          numCols,
                                          d_filter,
                                          filterWidth,s,oRow,oCol);
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
+ checkCudaErrors(cudaGetLastError());
   gaussian_blur<<<gridSize, blockSize>>>(d_blue,
                                          d_blueBlurred,
                                          numRows,
@@ -273,6 +321,72 @@ void recombine_channels(unsigned char *d_outputImageRGBA,
 
 	
 /*************************************************************************************************************************************************************/
+
+void pool(unsigned char *image, unsigned char *output, int oRow,int oCol,int fsize,int stride)
+{
+	
+
+
+	int output_rows=((oRow-fsize)/stride) +1;
+  	int output_columns=((oCol-fsize)/stride) +1;	
+	int pool_pixels= (output_rows*output_columns);
+
+
+	const dim3 blocksize(16,16);
+	const dim3 gridsize(output_rows/blocksize.y +1,output_columns/blocksize.y +1);
+	
+	
+	pooling_layer<<<gridsize,blocksize>>>(image,output,oRow,oCol,fsize,stride);
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
 
 
 
