@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 
 	//cudaDeviceSynchronize();	
 
-	//checkCudaErrors(cudaMemcpy(&(out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(uchar4) * oNumPixels, cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy((out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(unsigned char) * oNumPixels, cudaMemcpyDeviceToHost));
 
 	}
 
