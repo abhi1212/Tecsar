@@ -183,10 +183,9 @@ void conv_firstlayer()- Calls Convolution Kernel.
 
 
 unsigned char *d_red, *d_green, *d_blue;
-float         *d_filter;
+//float         *d_filter;
 
-void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage,
-                                const float* const h_filter, const size_t filterWidth)
+void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage)
 {
 
   int i;
@@ -205,13 +204,13 @@ void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsI
   //be sure to use checkCudaErrors like the above examples to
   //be able to tell if anything goes wrong
   //IMPORTANT: Notice that we pass a pointer to a pointer to cudaMalloc
-  checkCudaErrors(cudaMalloc(&d_filter, sizeof( float) * filterWidth * filterWidth));
+  //checkCudaErrors(cudaMalloc(&d_filter, sizeof( float) * filterWidth * filterWidth));
   //TODO:
   //Copy the filter on the host (h_filter) to the memory you just allocated
   //on the GPU.  cudaMemcpy(dst, src, numBytes, cudaMemcpyHostToDevice);
   //Remember to use checkCudaErrors!
 
-  checkCudaErrors(cudaMemcpy(d_filter, h_filter, sizeof(float) * filterWidth * filterWidth, cudaMemcpyHostToDevice));
+  //checkCudaErrors(cudaMemcpy(d_filter, h_filter, sizeof(float) * filterWidth * filterWidth, cudaMemcpyHostToDevice));
 
 }
 
@@ -249,6 +248,9 @@ void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_in
 /*******************************************************Convolution Kernel Call*********************************************************************************/
 
 void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA, const size_t numRows, const size_t numCols,
+			float * Red,
+		        float* Green,
+		        float* Blue,
                         unsigned char * d_redBlurred,
                         unsigned char * d_greenBlurred,
                         unsigned char * d_blueBlurred,
@@ -262,7 +264,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          d_redBlurred,
                                          numRows,
                                          numCols,
-                                         d_filter,
+                                         Red,
                                          filterWidth,s,oRow,oCol);
   cudaDeviceSynchronize(); 
   checkCudaErrors(cudaGetLastError());
@@ -270,7 +272,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          d_greenBlurred,
                                          numRows,
                                          numCols,
-                                         d_filter,
+                                         Green,
                                          filterWidth,s,oRow,oCol);
   cudaDeviceSynchronize(); 
  checkCudaErrors(cudaGetLastError());
@@ -278,7 +280,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                                          d_blueBlurred,
                                          numRows,
                                          numCols,
-                                         d_filter,
+                                         Blue,
                                          filterWidth,s,oRow,oCol);
 
   

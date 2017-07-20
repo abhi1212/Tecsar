@@ -22,13 +22,15 @@ size_t numCols() { return (size_t) imageInputRGBA.cols; }
 /********************************************************Function Definitions********************************************************************************************/
 
 void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA, const size_t numRows, const size_t numCols,
+			float * Red,
+		        float* Green,
+		        float* Blue,
                         unsigned char * d_redBlurred,
                         unsigned char * d_greenBlurred,
                         unsigned char * d_blueBlurred,
                         const int filterWidth, const int tilesize, const int s, const int oRow, const int oCol);
 
-void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage,
-const float* const h_filter, const size_t filterWidth);
+void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsImage);
 
 void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA,
                       const size_t numRows, const size_t numCols,
@@ -54,7 +56,7 @@ int main(int argc, char **argv)
 {
 	uchar4  *d_inputImageRGBA,*h_inputImageRGBA;	//uchar4 is a structure with 4 fields	      	
 	unsigned char *d_redBlurred, *d_greenBlurred, *d_blueBlurred,*d_outputImageRGBA,*h_outputImageRGBA;
-	float *d_filter,*h_filter;
+	//float *d_filter,*h_filter;
 	int i;
 	/* Defined a structure with 96 output arrays for first layer*/
 	
@@ -70,6 +72,15 @@ int main(int argc, char **argv)
 	unsigned char *d_poolImageRGBA;
 	} d_pool[96];
 
+	/*struct hfil{
+	float *h_filter;
+	} h_fil[96];
+
+	struct dfil{
+	float *d_filter;
+	} d_fil[96];
+	*/
+	
 	
 	/*************************************************************/ 
 
@@ -85,6 +96,8 @@ int main(int argc, char **argv)
 
 	filterWidth = atoi(argv[1]);
 	printf("Filterwidth is %d\n",filterWidth);
+
+	filterWidth=7;
 
 	s = atoi(argv[2]);
 	printf("Stride is %d\n",s);
@@ -132,11 +145,11 @@ int main(int argc, char **argv)
 	
 
 
-	h_filter = new float[filterWidth * filterWidth];                       //Creating an Array for Filter
+	//h_filter = new float[filterWidth * filterWidth];                       //Creating an Array for Filter
 	const size_t numPixels = numRows() * numCols();
+  
 
-
-	const float blurKernelSigma = 2.;
+/*	const float blurKernelSigma = 2.;
 	float filterSum = 0.f; //for normalization
 
 	for (int r = -filterWidth/2; r <= filterWidth/2; ++r) {
@@ -154,6 +167,71 @@ int main(int argc, char **argv)
 	h_filter[(r + filterWidth/2) * filterWidth + c + filterWidth/2] *= normalizationFactor;
 	    }
 	}
+
+
+
+/********************************************************Reading the First Layer Filter Weights*********************************************************************/
+
+	
+
+	FILE *fp;	
+	int j=0;
+
+	struct kern{				//Host Side Allocation				
+	float red[49];
+	float green[49];
+	float blue[49];
+	} kernel[96];
+
+
+
+	struct d_kern{
+	float d_red[49];
+	float d_green[49];
+	float d_blue[49];
+	} d_kernel[96];
+
+	
+
+
+	fp= fopen("testfile_demo.txt","r");
+
+	if(fp==0)
+		printf("Textfile cannot be read");
+
+
+	//printf("Im");
+	//return 0;
+
+
+
+	for(j=0;j<96;j++)
+	{
+
+		for(i=0;i<49;i++)
+		{
+			fscanf(fp,"%f\t",&kernel[j].red[i]);		
+				
+		}
+		
+		for(i=0;i<49;i++)
+		{
+			fscanf(fp,"%f\t",&kernel[j].green[i]);		
+				
+		}
+
+		for(i=0;i<49;i++)
+		{
+			fscanf(fp,"%f\t",&kernel[j].blue[i]);		
+				
+		}
+
+	}     
+
+
+	fclose(fp);
+
+	
 
 
 /*************************************************************************************************************************************************/
@@ -186,14 +264,17 @@ int main(int argc, char **argv)
 		
 	}
 
-	for(i=0;i<96;i++)
-	{
-		d_pool[i].d_poolImageRGBA=(unsigned char *)malloc(sizeof(unsigned char) *pool_pixels);
-		memset(d_pool[i].d_poolImageRGBA,0,sizeof(unsigned char) *pool_pixels);	
-	}
 
-  
+/*	for(i=0;i<96;i++)
+	{
+		h_fil[i].h_filter=(float *) malloc(sizeof(float) *(filterWidth*filterWidth));
+		memset(h_fil[i].h_filter,0,sizeof(float) *(filterWidth*filterWidth));		
+	}  
+*/	
+
+
 	checkCudaErrors(cudaMalloc((void**)&d_inputImageRGBA, sizeof(uchar4) * numPixels)); 	//Numpixels size of original image.
+
 
 	
 	for(i=0;i<96;i++)
@@ -211,6 +292,39 @@ int main(int argc, char **argv)
 
 
 
+/*	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMalloc((void**)&d_fil[i].d_filter,(sizeof(float) * (filterWidth*filterWidth))));	//ONumpixels size after stride
+	}	
+	
+
+	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMemset(d_fil[i].d_filter, 0, sizeof(float) * (filterWidth*filterWidth)));		
+	}
+
+*/
+
+	/* Cuda Mallocing the Device Filter */
+
+	
+	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_red,(sizeof(float) * (49))));		
+		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_green,(sizeof(float) * (49))));
+		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_blue,(sizeof(float) * (49))));
+	}
+
+
+	for(i=0;i<96;i++)
+	{
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_red, kernel[i].red, sizeof(float) * 49, cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_green,kernel[i].green, sizeof(float) * 49, cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_blue,kernel[i].blue, sizeof(float) * 49, cudaMemcpyHostToDevice));
+	}		
+
+
+
 	checkCudaErrors(cudaMemcpy(d_inputImageRGBA, h_inputImageRGBA, sizeof(int) * numPixels, cudaMemcpyHostToDevice)); //Input Memcpy
 	checkCudaErrors(cudaMalloc((void**)&d_redBlurred,    sizeof(unsigned char) * oNumPixels));			  //Malloc 3 channels
 	checkCudaErrors(cudaMalloc((void**)&d_greenBlurred,  sizeof(unsigned char) * oNumPixels));
@@ -220,7 +334,7 @@ int main(int argc, char **argv)
 	checkCudaErrors(cudaMemset(d_blueBlurred, 0, sizeof(unsigned char) * oNumPixels));
 
 
-	allocateMemoryAndCopyToGPU(numRows(), numCols(), h_filter, filterWidth);	//Mallocing output of 3 channels and also filters.
+	allocateMemoryAndCopyToGPU(numRows(), numCols());	//Mallocing output of 3 channels and also filters.
 
 	printf("Size of uchar4 is %d\n",sizeof(uchar4)); // Its 4 byte Long
  
@@ -230,17 +344,16 @@ int main(int argc, char **argv)
 	timer.Start(); 
 
 	
+	
+
 
 	/**********************************First Layer Alex Net**********************************************************************/
   
 	seperate_channel(h_inputImageRGBA, d_inputImageRGBA, numRows(), numCols(),oRow,oCol);    // Call Seperate channel
-
 	for(i=0;i<96;i++)
 	{
-
-
 	
-	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(), d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth, tilesize, s, oRow, oCol);     // 																Convolution First Layer 96 kernels of size 11*11*3
+	your_gaussian_blur(h_inputImageRGBA, d_inputImageRGBA,numRows(), numCols(),d_kernel[i].d_red,d_kernel[i].d_blue,d_kernel[i].d_green, d_redBlurred, d_greenBlurred, d_blueBlurred, filterWidth, tilesize, s, oRow, oCol);     // 																Convolution First Layer 96 kernels of size 11*11*3
 	
 	recombine_channels(d_out[i].d_outputImageRGBA, d_redBlurred, d_greenBlurred, d_blueBlurred,numRows(), numCols(),oRow,oCol);
 
@@ -250,6 +363,7 @@ int main(int argc, char **argv)
 	checkCudaErrors(cudaMemcpy((out[i].h_outputImageRGBA),d_out[i].d_outputImageRGBA, sizeof(unsigned char) * oNumPixels, cudaMemcpyDeviceToHost));
 
 	}
+
 
 	//pool(d_out[20].d_outputImageRGBA, d_pool[20].d_poolImageRGBA, oRow, oCol, fsize, stride);
 
