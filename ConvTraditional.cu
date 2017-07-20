@@ -249,8 +249,8 @@ void seperate_channel(const uchar4 * const h_inputImageRGBA, uchar4 * const d_in
 
 void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_inputImageRGBA, const size_t numRows, const size_t numCols,
 			float * Red,
-		        float* Green,
-		        float* Blue,
+		        float * Green,
+		        float * Blue,
                         unsigned char * d_redBlurred,
                         unsigned char * d_greenBlurred,
                         unsigned char * d_blueBlurred,

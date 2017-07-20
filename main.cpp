@@ -173,22 +173,39 @@ int main(int argc, char **argv)
 /********************************************************Reading the First Layer Filter Weights*********************************************************************/
 
 	
-
+ 
 	FILE *fp;	
 	int j=0;
 
 	struct kern{				//Host Side Allocation				
-	float red[49];
-	float green[49];
-	float blue[49];
+	float *red;
+	float *green;
+	float *blue;
 	} kernel[96];
+
+
+	for(i=0;i<96;i++)
+	{
+		kernel[i].red=(float *)malloc(sizeof(float) *49);	
+		memset(kernel[i].red,0,sizeof(float) *49);
+
+		kernel[i].green=(float *)malloc(sizeof(float) *49);	
+		memset(kernel[i].green,0,sizeof(float) *49);
+
+		kernel[i].blue=(float *)malloc(sizeof(float) *49);	
+		memset(kernel[i].blue,0,sizeof(float) *49);
+		
+	}	
+
+
+
 
 
 
 	struct d_kern{
-	float d_red[49];
-	float d_green[49];
-	float d_blue[49];
+	float *d_red;
+	float *d_green;
+	float *d_blue;
 	} d_kernel[96];
 
 	
@@ -230,6 +247,15 @@ int main(int argc, char **argv)
 
 
 	fclose(fp);
+
+
+	for(i=0;i<49;i++)
+	{
+		//printf("%f\t",kernel[1].red[i]);
+		//printf("%f\t",kernel[95].green[i]);
+		printf("%f\t",kernel[95].blue[i]);
+	}
+
 
 	
 
@@ -310,17 +336,25 @@ int main(int argc, char **argv)
 	
 	for(i=0;i<96;i++)
 	{
-		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_red,(sizeof(float) * (49))));		
+		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_red,(sizeof(float) * (49))));	
+		//checkCudaErrors(cudaMemset((void**)&d_kernel[i].d_red[1], 0, 49*sizeof(float)));
+	
 		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_green,(sizeof(float) * (49))));
+		//checkCudaErrors(cudaMemset((void**)&d_kernel[i].d_green, 0, 49*sizeof(float)));
+
 		checkCudaErrors(cudaMalloc((void**)&d_kernel[i].d_blue,(sizeof(float) * (49))));
+		//checkCudaErrors(cudaMemset((void**)&d_kernel[i].d_blue, 0, 49*sizeof(float)));
 	}
 
 
+	
+	cudaDeviceSynchronize();
+
 	for(i=0;i<96;i++)
 	{
-		checkCudaErrors(cudaMemcpy(d_kernel[i].d_red, kernel[i].red, sizeof(float) * 49, cudaMemcpyHostToDevice));
-		checkCudaErrors(cudaMemcpy(d_kernel[i].d_green,kernel[i].green, sizeof(float) * 49, cudaMemcpyHostToDevice));
-		checkCudaErrors(cudaMemcpy(d_kernel[i].d_blue,kernel[i].blue, sizeof(float) * 49, cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_red, kernel[i].red, (sizeof(float) * 40), cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_green, kernel[i].green, sizeof(float) * 49, cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemcpy(d_kernel[i].d_blue, kernel[i].blue, sizeof(float) * 49, cudaMemcpyHostToDevice));
 	}		
 
 
@@ -364,6 +398,7 @@ int main(int argc, char **argv)
 
 	}
 
+	
 
 	//pool(d_out[20].d_outputImageRGBA, d_pool[20].d_poolImageRGBA, oRow, oCol, fsize, stride);
 
